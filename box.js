@@ -1,13 +1,4 @@
 (function (global) {
-    class ContextUpdateEvent extends Event {
-        constructor() {
-            super(ContextUpdateEvent.name, {
-                bubbles: false,
-            });
-        }
-    }
-    ContextUpdateEvent.name = `context-update`;
-
     function createElement(name) {
         switch (name) {
         case `text`:
