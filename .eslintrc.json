@@ -1,12 +1,15 @@
 {
     "env": {
         "browser": true,
-        "commonjs": true,
         "es6": true
     },
     "extends": "eslint:recommended",
     "parserOptions": {
-        "sourceType": "module"
+        "ecmaVersion": 8,
+        "ecmaFeatures": {
+            "experimentalObjectRestSpread": true
+        },
+        "impliedStrict": true
     },
     "rules": {
         "indent": [
@@ -27,6 +30,7 @@
             {
                 "omitLastInOneLineBlock": true
             }
-        ]
+        ],
+        "generator-star-spacing": 0
     }
 }
