@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<title>ToDoMVC</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+    }
+</style>
+<script src="../box.js"></script>
+<script>
+    window.onload = function () {
+        `use strict`;
+
+        const {
+            box,
+            css
+        } = boxjs;
+        box({
+            $el: document.body,
+            $shadows: [{
+                _context: {
+                    list: []
+                },
+                _methods: {
+                    add(x) {
+                        this.context.list = this.context.list.concat(x);
+                    },
+                    remove(text) {
+                        const newList = this.context.list;
+                        newList.splice(this.context.list.indexOf(text), 1);
+                        this.context.list = newList;
+                    }
+                },
+                $components: [css `
+                    :host {
+                        background: #aaa;
+                    }
+                    form {
+                        display: flex;
+                        padding: 10px;
+                        background: #ccc;
+                        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5)
+                    }
+                    input {
+                        border: none;
+                        outline: none;
+                        padding: 5px 10px;
+                    }
+                    input[type="text"] {
+                        flex: 1
+                    }
+                    ul {
+                        flex: 1;
+                        list-style: none;
+                        margin: 0;
+                        padding: 0;
+                    }
+                    `, {
+                    $el: `form`,
+                    $components: [{
+                        $el: `input`,
+                        type: `text`,
+                        name: `input`,
+                        placeholder: `Todo...`
+                    }, {
+                        $el: `input`,
+                        type: `submit`
+                    }],
+                    onsubmit(event) {
+                        event.preventDefault();
+                        this.methods.add(this.input.value);
+                    }
+                }, {
+                    $el: `ul`,
+                    $update() {
+                        this.components = this.context.list.map(item => ({
+                            $el: `li`,
+                            $components: [{
+                                $shadows: [{
+                                    _methods: {
+                                        remove() {
+                                            this.host.methods.remove(item)
+                                        }
+                                    },
+                                    $components: [css `
+                                        :host {
+                                            display: block;
+                                        }
+                                        form {
+                                            margin: 10px;
+                                            background: white;
+                                            padding : 5px 10px;
+                                            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3)
+                                        }
+                                        div {
+                                            flex: 1
+                                        }
+                                        `, {
+                                        $el: `form`,
+                                        $style: {
+                                            display: `flex`
+                                        },
+                                        onsubmit(event) {
+                                            event.preventDefault();
+                                            this.methods.remove();
+                                        },
+                                        $components: [{
+                                            $text: item
+                                        }, {
+                                            $el: `input`,
+                                            type: `submit`,
+                                            value: `delete`
+                                        }]
+                                    }]
+                                }]
+                            }]
+                        }));
+                    }
+                }]
+            }]
+        })
+    };
+</script>
