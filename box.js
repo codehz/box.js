@@ -41,7 +41,7 @@
         if (el.style) Object.entries($style).forEach(([k, v]) => el.style[k] = v);
         if (el.classList) $classList.forEach(c => el.classList.add(c));
         if ($value && el.nodeValue) el.nodeValue = $value;
-        Object.entries(props).filter(([k]) => !k.startsWith(`_`)).forEach(([k, v]) => typeof v === `string` ? el.setAttribute(k, v) : el[k] = v);
+        Object.entries(props).filter(([k]) => !k.startsWith(`_`)).forEach(([k, v]) => typeof v === `string` ? el.setAttribute(k.replace(/([A-Z])/g, `-$1`).toLowerCase(), v) : el[k] = v);
         if (!el.context)
             defineConst(el, `context`, new Proxy(emptyObj, {
                 get: (t, p) => {
@@ -124,6 +124,7 @@
         defineConst(el, `update`, async() => {
             if ($update.call(el)) await Promise.all(Array.from(el.childNodes).map(async x => x.update && await x.update()));
         });
+        setTimeout(() => el.update(), 0);
         return el;
     }
 
