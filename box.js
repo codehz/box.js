@@ -11,6 +11,10 @@
         }
     }
 
+    function genID() {
+        return Date.now() % (2 ** 32 - 1);
+    }
+
     function defineConst(obj, name, value) {
         Object.defineProperty(obj, name, {
             value,
@@ -30,6 +34,8 @@
         $value = null,
         $update = () => true,
         $shadows = [],
+        $key = genID(),
+        $init = () => true,
         ...props
     } = {}) {
         const el = createElement($el);
@@ -70,7 +76,7 @@
                 set: (target, property, receiver) => {
                     if (changed.size === 0) {
                         setTimeout(async() => {
-                            shadow.update(changed);
+                            await shadow.update(changed);
                             changed.clear();
                         }, 0);
                     }
@@ -101,17 +107,29 @@
                 let i = 0;
                 for (i = 0; i < newList.length; i++) {
                     const node = newList[i];
+                    const skey = node.$key || NaN;
                     const snode = JSON.stringify(node);
                     const cpos = $components[i];
-                    if (snode !== JSON.stringify(cpos)) {
-                        el.insertBefore(box(node), el.childNodes.item(i));
-                        $components.splice(i, 0, node);
-                        for (let j = i + 1; j < $components.length; j++) {
-                            if (JSON.stringify($components[j]) === snode) {
+                    const ckey = cpos && cpos.$key || NaN;
+                    if (skey !== ckey) {
+                        let j = i + 1;
+                        for (; j < $components.length; j++) {
+                            if ($components[j].$key === skey) {
                                 $components.splice(j, 1);
+                                const target = el.childNodes.item(j);
+                                setTimeout(target.update, 0);
                                 break;
                             }
                         }
+                        if (j < el.childNodes.length) {
+                            el.insertBefore(el.childNodes.item(j), el.childNodes.item(i));
+                        } else {
+                            el.insertBefore(box(node), el.childNodes.item(i));
+                        }
+                        $components.splice(i, 0, node);
+                    } else if (snode !== JSON.stringify(cpos)) {
+                        $components[i] = node;
+                        el.childNodes.item(i).update();
                     }
                 }
                 $components.length = i;
@@ -121,10 +139,15 @@
                 }
             }
         });
+        defineConst(el, `$key`, $key);
         defineConst(el, `update`, async() => {
-            if ($update.call(el)) await Promise.all(Array.from(el.childNodes).map(async x => x.update && await x.update()));
+            if (await $update.call(el)) await Promise.all(Array.from(el.childNodes).map(async x => x.update && await x.update()));
         });
-        setTimeout(() => el.update(), 0);
+        setTimeout(() => {
+            if (el.getRootNode() === el && !(el instanceof ShadowRoot)) return;
+            $init.call(el);
+            el.update();
+        }, 0);
         return el;
     }
 
@@ -138,6 +161,7 @@
     }
     global.boxjs = {
         box,
-        css
+        css,
+        genID
     };
 })(window);
