@@ -153,7 +153,7 @@
 
     function css(slices, ...insert) {
         const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
-        const cooked = target.split(target.match(/^\n( +)/g)[0]).join(`\n`);
+        const cooked = target.split(target.match(/^\n(\s*)/g)[0]).join(`\n`);
         return {
             $el: `style`,
             $text: cooked
