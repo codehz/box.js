@@ -135,6 +135,10 @@ window.onload = function () {
                                         type: `checkbox`
                                     }, {
                                         $el: `label`,
+                                        ondblclick() {
+                                            this.parentNode.parentNode.classList.toggle(`editing`, true);
+                                            this.parentNode.parentNode.querySelector(`input.edit`).focus();
+                                        },
                                         $update() {
                                             this.components = [{
                                                 $el: `text`,
@@ -152,7 +156,22 @@ window.onload = function () {
                                 }, {
                                     $el: `input`,
                                     $classList: [`edit`],
-                                    type: `text`
+                                    type: `text`,
+                                    onfocus() {
+                                        this.value = this.context.list.find(x => x.id == id).title;
+                                    },
+                                    onblur() {
+                                        this.parentNode.classList.toggle(`editing`, false);
+                                        if (this.value === ``) return;
+                                        this.methods.setItem(id, { ...this.context.list.find(x => x.id == id),
+                                            title: this.value
+                                        });
+                                    },
+                                    onkeypress() {
+                                        if (event.keyCode === 13) {
+                                            this.blur();
+                                        }
+                                    }
                                 }]
                             }));
                             return true;
