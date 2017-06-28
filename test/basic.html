@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>ToDoMVC</title>
+<title>Basic</title>
 <style>
     body {
         margin: 0;
@@ -17,6 +17,7 @@
         } = boxjs;
         box({
             $el: document.body,
+            ariaLabel: `ToDoMVC`,
             $shadows: [{
                 _context: {
                     list: []
@@ -61,7 +62,8 @@
                         $el: `input`,
                         type: `text`,
                         name: `input`,
-                        placeholder: `Todo...`
+                        placeholder: `What needs to be done?`,
+                        autofocus: ``
                     }, {
                         $el: `input`,
                         type: `submit`
