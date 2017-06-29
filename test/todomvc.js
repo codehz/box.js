@@ -1,9 +1,16 @@
 window.onload = function () {
+    `use strict`;
+
     const {
+        symbols: sym,
+        utils: {
+            css,
+            genID
+        },
         box,
-        css,
-        genID
     } = window.boxjs;
+
+    const elKey = Symbol(`elKey`);
 
     function getMode() {
         const hash = location.hash;
@@ -28,151 +35,161 @@ window.onload = function () {
     ];
 
     box({
-        $el: document.body,
-        $shadows: [{
-            _context: {
+        [sym.element]: document.body,
+        [sym.shadows]: [{
+            [sym.context]: {
                 list: [],
                 mode: getMode()
             },
-            _methods: {
+            [sym.methods]: {
                 addTodo(title) {
-                    this.context.list = [...this.context.list, {
+                    this[sym.context].list = [...this[sym.context].list, {
                         title,
                         completed: false,
-                        $key: genID()
+                        [sym.key]: genID()
                     }];
                 },
                 getFiltered() {
-                    return this.context.list.filter(filters[this.context.mode]);
+                    return this[sym.context].list.filter(filters[this[sym.context].mode]);
                 },
 
-                setItem(id, obj) {
-                    this.context.list = this.context.list.map(x => x.$key === id ? {...x, ...obj} : x);
+                setItem(key, obj) {
+                    this[sym.context].list = this[sym.context].list.map(x => x[sym.key] === key ? { ...x,
+                        ...obj
+                    } : x);
                 },
 
-                removeItem(id) {
-                    this.context.list = this.context.list.filter(x => x.id !== id);
+                removeItem(key) {
+                    this[sym.context].list = this[sym.context].list.filter(x => x[sym.key] !== key);
                 }
             },
-            $init() {
+            [sym.init]() {
                 window.onhashchange = () => {
-                    this.context.mode = getMode();
+                    this[sym.context].mode = getMode();
                 };
             },
-            $components: [css `
+            [sym.components]: [css `
             @import url(todomvc.css)
             `, {
-                $el: `header`,
-                $classList: [`todoapp`],
-                $components: [{
-                    $el: `header`,
-                    $classList: [`header`],
-                    $components: [{
-                        $el: `h1`,
-                        $text: `todos`
+                [sym.element]: `header`,
+                [sym.classList]: [`todoapp`],
+                [sym.components]: [{
+                    [sym.element]: `header`,
+                    [sym.classList]: [`header`],
+                    [sym.components]: [{
+                        [sym.element]: `h1`,
+                        [sym.text]: `todos`
                     }, {
-                        $el: `input`,
-                        $classList: [`new-todo`],
+                        [sym.element]: `input`,
+                        [sym.classList]: [`new-todo`],
                         autofocus: ``,
                         placeholder: `What needs to be done?`,
                         onkeypress(event) {
                             if (event.keyCode === 13 && this.value.length > 0) {
                                 event.preventDefault();
-                                this.methods.addTodo(this.value);
+                                this[sym.methods].addTodo(this.value);
                                 this.value = ``;
                             }
                         }
                     }]
                 }, {
-                    $el: `section`,
-                    $classList: [`main`],
-                    $init() {
-                        this.update();
+                    [sym.element]: `section`,
+                    [sym.classList]: [`main`],
+                    [sym.init]() {
+                        this[sym.update]();
                     },
-                    $update() {
-                        const filtered = this.methods.getFiltered();
+                    [sym.update]() {
+                        const filtered = this[sym.methods].getFiltered();
                         this.classList.toggle(`hidden`, filtered.length == 0);
                         return true;
                     },
-                    $components: [{
-                        $el: `input`,
-                        $classList: [`toggle-all`],
+                    [sym.components]: [{
+                        [sym.element]: `input`,
+                        [sym.classList]: [`toggle-all`],
+                        [sym.update]() {
+                            this.checked = !this[sym.context].list.find(p => !p.completed);
+                        },
                         type: `checkbox`,
                         onchange() {
-                            this.context.list = this.context.list.map(p => ({ ...p,
+                            this[sym.context].list = this[sym.context].list.map(p => ({ ...p,
                                 completed: this.checked
                             }));
-                        },
-                        $update() {
-                            this.checked = !this.context.list.find(p => !p.completed);
                         }
                     }, {
-                        $el: `ul`,
-                        $classList: [`todo-list`],
-                        $template: {
-                            $el: `li`,
-                            $classList: [`todo`],
-                            $render(node) {
+                        [sym.element]: `ul`,
+                        [sym.classList]: [`todo-list`],
+                        [sym.fetch]() {
+                            return this[sym.methods].getFiltered();
+                        },
+                        [sym.template]: {
+                            [sym.element]: `li`,
+                            [sym.classList]: [`todo`],
+                            [sym.render](node) {
                                 this.classList.toggle(`completed`, node.completed);
                                 return true;
                             },
-                            $components: [{
-                                $classList: [`view`],
-                                $components: [{
-                                    $el: `input`,
-                                    $classList: [`toggle`],
+                            [sym.components]: [{
+                                [sym.classList]: [`view`],
+                                [sym.components]: [{
+                                    [sym.element]: `input`,
+                                    [sym.classList]: [`toggle`],
                                     onchange() {
-                                        this.methods.setItem(this._id, {
+                                        this[sym.methods].setItem(this[elKey], {
                                             completed: this.checked
                                         });
                                     },
-                                    $render({
+                                    [sym.render]({
                                         completed,
-                                        $key
+                                        [sym.key]: key
                                     }) {
-                                        this._id = $key;
+                                        this[elKey] = key;
                                         this.checked = completed;
                                     },
                                     type: `checkbox`
                                 }, {
-                                    $el: `label`,
+                                    [sym.element]: `label`,
                                     ondblclick() {
                                         this.parentNode.parentNode.classList.toggle(`editing`, true);
                                         this.parentNode.parentNode.querySelector(`input.edit`).focus();
                                     },
-                                    $render({
+                                    [sym.render]({
                                         title,
-                                        $key
+                                        [sym.key]: key
                                     }) {
-                                        this.components = [{
-                                            $el: `text`,
-                                            $value: title
+                                        this[sym.components] = [{
+                                            [sym.element]: sym.text,
+                                            [sym.value]: title
                                         }];
-                                        this._id = $key;
+                                        this[elKey] = key;
                                     }
                                 }, {
-                                    $el: `button`,
-                                    $classList: [`destroy`],
+                                    [sym.element]: `button`,
+                                    [sym.classList]: [`destroy`],
+                                    [sym.render]({
+                                        [sym.key]: key
+                                    }) {
+                                        this[elKey] = key;
+                                    },
                                     onclick(event) {
                                         event.preventDefault();
-                                        this.methods.removeItem(this._id);
+                                        this[sym.methods].removeItem(this[elKey]);
                                     }
                                 }]
                             }, {
-                                $el: `input`,
-                                $classList: [`edit`],
-                                type: `text`,
-                                $render({
+                                [sym.element]: `input`,
+                                [sym.classList]: [`edit`],
+                                [sym.render]({
                                     title,
-                                    $key
+                                    [sym.key]: key
                                 }) {
                                     this.value = title;
-                                    this._id = $key;
+                                    this[elKey] = key;
                                 },
+                                type: `text`,
                                 onblur() {
                                     this.parentNode.classList.toggle(`editing`, false);
                                     if (this.value === ``) return;
-                                    this.methods.setItem(this._id, {
+                                    this[sym.methods].setItem(this[elKey], {
                                         title: this.value
                                     });
                                 },
@@ -182,80 +199,77 @@ window.onload = function () {
                                     }
                                 }
                             }]
-                        },
-                        $fetch() {
-                            return this.methods.getFiltered();
                         }
                     }]
                 }, {
-                    $el: `footer`,
-                    $classList: [`footer`],
-                    $init() {
-                        this.update();
+                    [sym.element]: `footer`,
+                    [sym.classList]: [`footer`],
+                    [sym.init]() {
+                        this[sym.update]();
                     },
-                    $update() {
-                        this.classList.toggle(`hidden`, this.context.list.length == 0);
+                    [sym.update]() {
+                        this.classList.toggle(`hidden`, this[sym.context].list.length == 0);
                         return true;
                     },
-                    $components: [{
-                        $el: `span`,
-                        $classList: [`todo-count`],
-                        $components: [{
-                            $el: `strong`,
-                            $update() {
-                                const uncompleted = this.context.list.reduce((p, c) => p + (c.completed ? 0 : 1), 0);
-                                this.components = [{
-                                    $el: `text`,
-                                    $value: `${uncompleted}`
+                    [sym.components]: [{
+                        [sym.element]: `span`,
+                        [sym.classList]: [`todo-count`],
+                        [sym.components]: [{
+                            [sym.element]: `strong`,
+                            [sym.update]() {
+                                const uncompleted = this[sym.context].list.reduce((p, c) => p + (c.completed ? 0 : 1), 0);
+                                this[sym.components] = [{
+                                    [sym.element]: sym.text,
+                                    [sym.value]: `${uncompleted}`
                                 }];
                             }
                         }, {
-                            $el: `text`,
-                            $value: ` items left`
+                            [sym.element]: sym.text,
+                            [sym.value]: ` items left`
                         }]
                     }, {
-                        $el: `ul`,
-                        $classList: [`filters`],
-                        $components: [`all`, `active`, `completed`].map((name, index) => ({
-                            $el: `li`,
-                            $components: [{
-                                $el: `a`,
-                                $style: {
+                        [sym.element]: `ul`,
+                        [sym.classList]: [`filters`],
+                        [sym.components]: [`all`, `active`, `completed`].map((name, index) => ({
+                            [sym.element]: `li`,
+                            [sym.components]: [{
+                                [sym.element]: `a`,
+                                [sym.style]: {
                                     textTransform: `capitalize`
                                 },
-                                $update() {
-                                    this.classList.toggle(`selected`, index == this.context.mode);
+                                [sym.update]() {
+                                    this.classList.toggle(`selected`, index == this[sym.context].mode);
                                 },
                                 href: `#/${name}`,
-                                $text: `${name}\u200B`
+                                [sym.text]: `${name}\u200B`
                             }]
                         }))
                     }, {
-                        $el: `button`,
-                        $classList: [`clear-completed`],
-                        $update() {
-                            const uncompleted = this.context.list.reduce((p, c) => p + (c.completed ? 1 : 0), 0);
+                        [sym.element]: `button`,
+                        [sym.classList]: [`clear-completed`],
+                        [sym.update]() {
+                            const uncompleted = this[sym.context].list.reduce((p, c) => p + (c.completed ? 1 : 0), 0);
                             this.classList.toggle(`hidden`, uncompleted == 0);
                             return true;
                         },
-                        $text: `Clear completed`,
+                        [sym.text]: `Clear completed`,
                         onclick() {
-                            this.context.list = this.context.list.filter(filters[1]);
+                            this[sym.context].list = this[sym.context].list.filter(filters[1]);
                         }
                     }]
                 }]
             }, {
-                $el: `footer`,
-                $classList: [`info`],
-                $components: [{
-                    $el: `p`,
-                    $text: `Double-click to edit a todo`
+                [sym.element]: `footer`,
+                [sym.classList]: [`info`],
+                [sym.components]: [{
+                    [sym.element]: `p`,
+                    [sym.text]: `Double-click to edit a todo`
                 }, {
-                    $el: `p`,
-                    $text: `Written by `,
-                    $components: [{
-                        $el: `a`,
-                        $text: `CodeHz`,
+                    [sym.element]: `p`,
+                    [sym.text]: `Written by `,
+                    [sym.components]: [{
+                        [sym.element]: `a`,
+                        [sym.text]: `CodeHz`,
                         href: `https://github/CodeHz`
                     }]
                 }]

@@ -13,26 +13,29 @@
 
         const {
             box,
-            css
+            symbols: sym,
+            utils: {
+                css
+            }
         } = boxjs;
         box({
-            $el: document.body,
+            [sym.element]: document.body,
             ariaLabel: `ToDoMVC`,
-            $shadows: [{
-                _context: {
+            [sym.shadows]: [{
+                [sym.context]: {
                     list: []
                 },
-                _methods: {
+                [sym.methods]: {
                     add(x) {
-                        this.context.list = this.context.list.concat(x);
+                        this[sym.context].list = this[sym.context].list.concat(x);
                     },
                     remove(text) {
-                        const newList = this.context.list;
-                        newList.splice(this.context.list.indexOf(text), 1);
-                        this.context.list = newList;
+                        const newList = this[sym.context].list;
+                        newList.splice(this[sym.context].list.indexOf(text), 1);
+                        this[sym.context].list = newList;
                     }
                 },
-                $components: [css `
+                [sym.components]: [css `
                     :host {
                         background: #aaa;
                     }
@@ -57,34 +60,34 @@
                         padding: 0;
                     }
                     `, {
-                    $el: `form`,
-                    $components: [{
-                        $el: `input`,
+                    [sym.element]: `form`,
+                    [sym.components]: [{
+                        [sym.element]: `input`,
                         type: `text`,
                         name: `input`,
                         placeholder: `What needs to be done?`,
                         autofocus: ``
                     }, {
-                        $el: `input`,
+                        [sym.element]: `input`,
                         type: `submit`
                     }],
                     onsubmit(event) {
                         event.preventDefault();
-                        this.methods.add(this.input.value);
+                        this[sym.methods].add(this.input.value);
                     }
                 }, {
-                    $el: `ul`,
-                    $update() {
-                        this.components = this.context.list.map(item => ({
-                            $el: `li`,
-                            $components: [{
-                                $shadows: [{
-                                    _methods: {
+                    [sym.element]: `ul`,
+                    [sym.update]() {
+                        this[sym.components] = this[sym.context].list.map(item => ({
+                            [sym.element]: `li`,
+                            [sym.components]: [{
+                                [sym.shadows]: [{
+                                    [sym.methods]: {
                                         remove() {
-                                            this.host.methods.remove(item)
+                                            this.host[sym.methods].remove(item)
                                         }
                                     },
-                                    $components: [css `
+                                    [sym.components]: [css `
                                         :host {
                                             display: block;
                                         }
@@ -98,18 +101,18 @@
                                             flex: 1
                                         }
                                         `, {
-                                        $el: `form`,
-                                        $style: {
+                                        [sym.element]: `form`,
+                                        [sym.style]: {
                                             display: `flex`
                                         },
                                         onsubmit(event) {
                                             event.preventDefault();
-                                            this.methods.remove();
+                                            this[sym.methods].remove();
                                         },
-                                        $components: [{
-                                            $text: item
+                                        [sym.components]: [{
+                                            [sym.text]: item
                                         }, {
-                                            $el: `input`,
+                                            [sym.element]: `input`,
                                             type: `submit`,
                                             value: `delete`
                                         }]

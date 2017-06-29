@@ -1,7 +1,30 @@
 (function (global) {
+    const symbols = Object.freeze([
+        `id`,
+        `element`,
+        `style`,
+        `classList`,
+        `components`,
+        `text`,
+        `value`,
+        `datasource`,
+        `fetch`,
+        `template`,
+        `update`,
+        `render`,
+        `shadows`,
+        `key`,
+        `init`,
+        `context`,
+        `methods`,
+        `text`
+    ].reduce((o, name) => ({ ...o,
+        [name]: Symbol(name)
+    }), {}));
+
     function createElement(name) {
         switch (name) {
-        case `text`:
+        case symbols.text:
             return document.createTextNode(`text`);
         case `svg`:
             return document.createElementNS(`http://www.w3.org/2000/svg`, `svg`);
@@ -31,62 +54,62 @@
     const emptyObj = Object.freeze({});
 
     function box({
-        $el = `div`,
-        $style = {},
-        $classList = [],
-        $components = [],
-        $text = null,
-        $value = null,
-        $datasource = [],
-        $fetch = () => [],
-        $template = null,
-        $update = () => true,
-        $render = $template ? () => false : () => true,
-        $shadows = [],
-        $key = NaN,
-        $init = () => true,
+        [symbols.element]: $el = `div`,
+        [symbols.style]: $style = {},
+        [symbols.classList]: $classList = [],
+        [symbols.components]: $components = [],
+        [symbols.text]: $text = null,
+        [symbols.value]: $value = null,
+        [symbols.datasource]: $datasource = [],
+        [symbols.fetch]: $fetch = () => [],
+        [symbols.template]: $template = null,
+        [symbols.update]: $update = () => true,
+        [symbols.render]: $render = $template ? () => false : () => true,
+        [symbols.shadows]: $shadows = [],
+        [symbols.key]: $key = NaN,
+        [symbols.init]: $init = () => true,
         ...props
     } = {}) {
         const el = createElement($el);
         while (el.firstChild) el.removeChild(el.firstChild);
         if ($text) $components = [{
-            $el: `text`,
-            $value: $text
+            [symbols.element]: symbols.text,
+            [symbols.value]: $text
         }, ...$components];
         if (el.appendChild) $components.forEach(e => el.appendChild(box(e)));
         if (el.style) Object.entries($style).forEach(([k, v]) => el.style[k] = v);
         if (el.classList) $classList.forEach(c => el.classList.add(c));
         if ($value && el.nodeValue) el.nodeValue = $value;
         Object.entries(props).filter(([k]) => !k.startsWith(`_`)).forEach(([k, v]) => typeof v === `string` ? el.setAttribute(k.replace(/([A-Z])/g, `-$1`).toLowerCase(), v) : el[k] = v);
-        if (!el.context)
-            defineConst(el, `context`, new Proxy(emptyObj, {
+        if (!el[symbols.context])
+            defineConst(el, symbols.context, new Proxy(emptyObj, {
                 get: (t, p) => {
                     if (p in emptyObj) return emptyObj[p];
-                    if (el.parentNode && el.parentNode.context) return el.parentNode.context[p];
+                    if (el.parentNode && el.parentNode[symbols.context]) return el.parentNode[symbols.context][p];
                 },
                 set: (t, p, v) => {
                     if (p in emptyObj) return v;
-                    if (el.parentNode && el.parentNode.context) return el.parentNode.context[p] = v;
+                    if (el.parentNode && el.parentNode[symbols.context]) return el.parentNode[symbols.context][p] = v;
                 }
             }));
-        if (!el.methods)
-            defineConst(el, `methods`, new Proxy(emptyObj, {
+        if (!el[symbols.methods])
+            defineConst(el, symbols.methods, new Proxy(emptyObj, {
                 get: (t, p) => {
                     if (p in emptyObj) return emptyObj[p];
-                    if (el.parentNode && el.parentNode.methods) return el.parentNode.methods[p];
+                    if (el.parentNode && el.parentNode[symbols.methods]) return el.parentNode[symbols.methods][p];
                 }
             }));
-        defineConst(el, `shadows`, $shadows.map(content => {
+        defineConst(el, symbols.shadows, $shadows.map(content => {
             const shadow = el.attachShadow({
                 mode: `open`
             });
             const changed = new Set;
 
-            defineConst(shadow, `context`, new Proxy(content._context || {}, {
+            defineConst(shadow, symbols.context, new Proxy(content[symbols.context] || {}, {
                 set: (target, property, receiver) => {
                     if (changed.size === 0) {
                         setTimeout(async() => {
-                            await shadow.update(changed);
+                            await shadow[symbols.update](changed);
                             changed.clear();
                         }, 0);
                     }
@@ -95,7 +118,7 @@
                 }
             }));
 
-            defineConst(shadow, `methods`, new Proxy(content._methods || {}, {
+            defineConst(shadow, symbols.methods, new Proxy(content[symbols.methods] || {}, {
                 get: (target, property) => {
                     const ret = Reflect.get(target, property);
                     if (typeof ret === `function`) return ret.bind(shadow);
@@ -104,13 +127,13 @@
             }));
 
             box(Object.assign(content, {
-                $el: shadow
+                [symbols.element]: shadow
             }));
 
             return shadow;
         }));
         if ($template) {
-            Object.defineProperty(el, `datasource`, {
+            Object.defineProperty(el, symbols.datasource, {
                 get() {
                     return Object.freeze($datasource);
                 },
@@ -118,14 +141,14 @@
                     let i = 0;
                     for (; i < newSource.length; i++) {
                         const node = newSource[i];
-                        const skey = node.$key || NaN;
+                        const skey = node[symbols.key] || NaN;
                         const snode = JSON.stringify(node);
                         const cpos = $datasource[i];
-                        const ckey = cpos && cpos.$key || NaN;
+                        const ckey = cpos && cpos[symbols.key] || NaN;
                         if (skey !== ckey) {
                             let j = i + 1;
                             for (; j < $datasource.length; j++) {
-                                if ($datasource[j].$key === skey) {
+                                if ($datasource[j][symbols.key] === skey) {
                                     $datasource.splice(j, 1);
                                     break;
                                 }
@@ -136,10 +159,10 @@
                                 el.insertBefore(box($template), el.childNodes.item(i));
                             }
                             $datasource.splice(i, 0, node);
-                            el.childNodes.item(i).render(node);
+                            el.childNodes.item(i)[symbols.render](node);
                         } else if (snode !== JSON.stringify(cpos)) {
                             $datasource[i] = node;
-                            el.childNodes.item(i).render(node);
+                            el.childNodes.item(i)[symbols.render](node);
                         }
                     }
                     $datasource.length = i;
@@ -150,7 +173,7 @@
                 }
             });
         } else
-            Object.defineProperty(el, `components`, {
+            Object.defineProperty(el, symbols.components, {
                 get() {
                     return $components;
                 },
@@ -182,13 +205,13 @@
                     }
                 }
             });
-        defineConst(el, `$key`, $key);
-        defineConst(el, `update`, async(obj) => {
-            if ($template) el.datasource = await $fetch.call(el);
-            if (await $update.call(el, obj)) await Promise.all(Array.from(el.childNodes).map(async x => x.update && await x.update(obj)));
+        defineConst(el, symbols.key, $key);
+        defineConst(el, symbols.update, async(obj) => {
+            if ($template) el[symbols.datasource] = await $fetch.call(el);
+            if (await $update.call(el, obj)) await Promise.all(Array.from(el.childNodes).map(async x => x[symbols.update] && await x[symbols.update](obj)));
         });
-        defineConst(el, `render`, async(obj) => {
-            if (await $render.call(el, obj)) await Promise.all(Array.from(el.childNodes).map(async x => x.render && await x.render(obj)));
+        defineConst(el, symbols.render, async(obj) => {
+            if (await $render.call(el, obj)) await Promise.all(Array.from(el.childNodes).map(async x => x[symbols.render] && await x[symbols.render](obj)));
         });
         setTimeout(() => {
             if (el.getRootNode() === el && !(el instanceof ShadowRoot)) return;
@@ -206,13 +229,18 @@
         else
             cooked = target.trim();
         return {
-            $el: `style`,
-            $text: cooked
+            [symbols.element]: `style`,
+            [symbols.text]: cooked
         };
     }
-    global.boxjs = {
+
+    defineConst(global, `boxjs`, Object.freeze({
+        symbols,
         box,
-        css,
-        genID
-    };
+        utils: {
+            nextTick,
+            css,
+            genID
+        }
+    }));
 })(window);
