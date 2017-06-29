@@ -36,7 +36,7 @@
         $value = null,
         $update = () => true,
         $shadows = [],
-        $key = genID(),
+        $key = NaN,
         $init = () => true,
         ...props
     } = {}) {
