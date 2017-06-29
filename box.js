@@ -155,7 +155,12 @@
 
     function css(slices, ...insert) {
         const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
-        const cooked = target.split(target.match(/^\n(\s*)/g)[0]).join(`\n`);
+        let matched = target.match(/^\n(\s*)/g);
+        let cooked;
+        if (matched !== null)
+            cooked = target.split(matched[0]).join(`\n`);
+        else
+            cooked = target.trim();
         return {
             $el: `style`,
             $text: cooked
