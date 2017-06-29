@@ -11,8 +11,10 @@
         }
     }
 
+    let count = 0;
     function genID() {
-        return Date.now() % (2 ** 32 - 1);
+        count = count + 1 % (1 << 8);
+        return (((Date.now() % (1 << 15)) << 16) + ((performance.now() * 1000 % (1 << 8)) << 8) + count) | 0;
     }
 
     function defineConst(obj, name, value) {
