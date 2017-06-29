@@ -115,7 +115,6 @@
                     return Object.freeze($datasource);
                 },
                 set(newSource) {
-                    console.log(`set`, $datasource, newSource);
                     let i = 0;
                     for (; i < newSource.length; i++) {
                         const node = newSource[i];
@@ -144,7 +143,6 @@
                         }
                     }
                     $datasource.length = i;
-                    console.log($datasource);
                     while (i < el.childNodes.length) {
                         const onode = el.childNodes.item(i);
                         el.removeChild(onode);
