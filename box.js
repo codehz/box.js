@@ -16,7 +16,8 @@
         `key`,
         `init`,
         `context`,
-        `methods`
+        `methods`,
+        `changed`
     ].reduce((o, name) => ({ ...o,
         [name]: Symbol(name)
     }), {}));
@@ -50,8 +51,6 @@
         });
     }
 
-    const emptyObj = Object.freeze({});
-
     function box({
         [symbols.element]: $el = `div`,
         [symbols.style]: $style = {},
@@ -67,6 +66,8 @@
         [symbols.shadows]: $shadows = [],
         [symbols.key]: $key = NaN,
         [symbols.init]: $init = () => true,
+        [symbols.context]: $context = {},
+        [symbols.methods]: $methods = {},
         ...props
     } = {}) {
         const el = createElement($el);
@@ -80,57 +81,42 @@
         if (el.classList) $classList.forEach(c => el.classList.add(c));
         if ($value && el.nodeValue) el.nodeValue = $value;
         Object.entries(props).filter(([k]) => !k.startsWith(`_`)).forEach(([k, v]) => typeof v === `string` ? el.setAttribute(k.replace(/([A-Z])/g, `-$1`).toLowerCase(), v) : el[k] = v);
-        if (!el[symbols.context])
-            defineConst(el, symbols.context, new Proxy(emptyObj, {
-                get: (t, p) => {
-                    if (p in emptyObj) return emptyObj[p];
-                    if (el.parentNode && el.parentNode[symbols.context]) return el.parentNode[symbols.context][p];
-                },
-                set: (t, p, v) => {
-                    if (p in emptyObj) return v;
-                    if (el.parentNode && el.parentNode[symbols.context]) return el.parentNode[symbols.context][p] = v;
-                }
-            }));
-        if (!el[symbols.methods])
-            defineConst(el, symbols.methods, new Proxy(emptyObj, {
-                get: (t, p) => {
-                    if (p in emptyObj) return emptyObj[p];
-                    if (el.parentNode && el.parentNode[symbols.methods]) return el.parentNode[symbols.methods][p];
-                }
-            }));
-        defineConst(el, symbols.shadows, $shadows.map(content => {
-            const shadow = el.attachShadow({
-                mode: `open`
-            });
-            const changed = new Set;
-
-            defineConst(shadow, symbols.context, new Proxy(content[symbols.context] || {}, {
-                set: (target, property, receiver) => {
-                    if (changed.size === 0) {
+        defineConst(el, symbols.changed, new Set);
+        defineConst(el, symbols.context, new Proxy($context, {
+            get(target, property) {
+                if (property in $context)
+                    return $context[property];
+                else if (el.parentNode && el.parentNode[symbols.context])
+                    return el.parentNode[symbols.context][property];
+            },
+            set(target, property, value) {
+                if (property in $context) {
+                    if (el[symbols.changed].size === 0) {
                         setTimeout(async() => {
-                            await shadow[symbols.update](changed);
-                            changed.clear();
+                            await el[symbols.update](el[symbols.changed]);
+                            el[symbols.changed].clear();
                         }, 0);
                     }
-                    changed.add(property);
-                    return Reflect.set(target, property, receiver);
-                }
-            }));
-
-            defineConst(shadow, symbols.methods, new Proxy(content[symbols.methods] || {}, {
-                get: (target, property) => {
-                    const ret = Reflect.get(target, property);
-                    if (typeof ret === `function`) return ret.bind(shadow);
-                    return ret;
-                }
-            }));
-
-            box(Object.assign(content, {
-                [symbols.element]: shadow
-            }));
-
-            return shadow;
+                    el[symbols.changed].add(property);
+                    return $context[property] = value;
+                } else if (el.parentNode && el.parentNode[symbols.context])
+                    return el.parentNode[symbols.context][property] = value;
+            }
         }));
+        defineConst(el, symbols.methods, new Proxy($methods, {
+            get(target, property) {
+                if (property in $methods)
+                    return $methods[property].bind(el);
+                else if (el.parentNode && el.parentNode[symbols.methods])
+                    return el.parentNode[symbols.methods][property];
+            }
+        }));
+        defineConst(el, symbols.shadows, $shadows.map(content => box({
+            ...content,
+            [symbols.element]: el.attachShadow({
+                mode: `open`
+            })
+        })));
         if ($template) {
             Object.defineProperty(el, symbols.datasource, {
                 get() {
@@ -246,7 +232,7 @@
             [symbols.value]: cooked
         };
     }
-    text.raw = function(slices, ...insert) {
+    text.raw = function (slices, ...insert) {
         const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
         return {
             [symbols.element]: symbols.text,
