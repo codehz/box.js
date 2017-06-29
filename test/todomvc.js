@@ -39,7 +39,7 @@ window.onload = function () {
                     this.context.list = [...this.context.list, {
                         title,
                         completed: false,
-                        id: genID()
+                        $key: genID()
                     }];
                 },
                 getFiltered() {
@@ -47,7 +47,7 @@ window.onload = function () {
                 },
 
                 setItem(id, obj) {
-                    this.context.list = this.context.list.map(x => x.id === id ? obj : x);
+                    this.context.list = this.context.list.map(x => x.$key === id ? {...x, ...obj} : x);
                 },
 
                 removeItem(id) {
@@ -86,6 +86,9 @@ window.onload = function () {
                 }, {
                     $el: `section`,
                     $classList: [`main`],
+                    $init() {
+                        this.update();
+                    },
                     $update() {
                         const filtered = this.methods.getFiltered();
                         this.classList.toggle(`hidden`, filtered.length == 0);
@@ -106,80 +109,90 @@ window.onload = function () {
                     }, {
                         $el: `ul`,
                         $classList: [`todo-list`],
-                        $update() {
-                            const filtered = this.methods.getFiltered();
-                            this.components = filtered.map(({
-                                id
-                            }) => ({
-                                $el: `li`,
-                                $key: id,
-                                $classList: [`todo`],
-                                $update() {
-                                    this.classList.toggle(`completed`, this.context.list.find(x => x.id == id).completed);
-                                    return true;
-                                },
+                        $template: {
+                            $el: `li`,
+                            $classList: [`todo`],
+                            $render(node) {
+                                this.classList.toggle(`completed`, node.completed);
+                                return true;
+                            },
+                            $components: [{
+                                $classList: [`view`],
                                 $components: [{
-                                    $classList: [`view`],
-                                    $components: [{
-                                        $el: `input`,
-                                        $classList: [`toggle`],
-                                        onchange() {
-                                            this.methods.setItem(id, {
-                                                ...this.context.list.find(x => x.id == id),
-                                                completed: this.checked
-                                            });
-                                        },
-                                        $update() {
-                                            this.checked = this.context.list.find(x => x.id == id).completed;
-                                        },
-                                        type: `checkbox`
-                                    }, {
-                                        $el: `label`,
-                                        ondblclick() {
-                                            this.parentNode.parentNode.classList.toggle(`editing`, true);
-                                            this.parentNode.parentNode.querySelector(`input.edit`).focus();
-                                        },
-                                        $update() {
-                                            this.components = [{
-                                                $el: `text`,
-                                                $value: this.context.list.find(x => x.id == id).title
-                                            }];
-                                        },
-                                    }, {
-                                        $el: `button`,
-                                        $classList: [`destroy`],
-                                        onclick(event) {
-                                            event.preventDefault();
-                                            this.methods.removeItem(id);
-                                        }
-                                    }]
-                                }, {
                                     $el: `input`,
-                                    $classList: [`edit`],
-                                    type: `text`,
-                                    onfocus() {
-                                        this.value = this.context.list.find(x => x.id == id).title;
-                                    },
-                                    onblur() {
-                                        this.parentNode.classList.toggle(`editing`, false);
-                                        if (this.value === ``) return;
-                                        this.methods.setItem(id, { ...this.context.list.find(x => x.id == id),
-                                            title: this.value
+                                    $classList: [`toggle`],
+                                    onchange() {
+                                        this.methods.setItem(this._id, {
+                                            completed: this.checked
                                         });
                                     },
-                                    onkeypress() {
-                                        if (event.keyCode === 13) {
-                                            this.blur();
-                                        }
+                                    $render({
+                                        completed,
+                                        $key
+                                    }) {
+                                        this._id = $key;
+                                        this.checked = completed;
+                                    },
+                                    type: `checkbox`
+                                }, {
+                                    $el: `label`,
+                                    ondblclick() {
+                                        this.parentNode.parentNode.classList.toggle(`editing`, true);
+                                        this.parentNode.parentNode.querySelector(`input.edit`).focus();
+                                    },
+                                    $render({
+                                        title,
+                                        $key
+                                    }) {
+                                        this.components = [{
+                                            $el: `text`,
+                                            $value: title
+                                        }];
+                                        this._id = $key;
+                                    }
+                                }, {
+                                    $el: `button`,
+                                    $classList: [`destroy`],
+                                    onclick(event) {
+                                        event.preventDefault();
+                                        this.methods.removeItem(this._id);
                                     }
                                 }]
-                            }));
-                            return true;
+                            }, {
+                                $el: `input`,
+                                $classList: [`edit`],
+                                type: `text`,
+                                $render({
+                                    title,
+                                    $key
+                                }) {
+                                    this.value = title;
+                                    this._id = $key;
+                                },
+                                onblur() {
+                                    this.parentNode.classList.toggle(`editing`, false);
+                                    if (this.value === ``) return;
+                                    this.methods.setItem(this._id, {
+                                        title: this.value
+                                    });
+                                },
+                                onkeypress() {
+                                    if (event.keyCode === 13) {
+                                        this.blur();
+                                    }
+                                }
+                            }]
+                        },
+                        $fetch() {
+                            return this.methods.getFiltered();
                         }
                     }]
                 }, {
                     $el: `footer`,
                     $classList: [`footer`],
+                    $init() {
+                        this.update();
+                    },
                     $update() {
                         this.classList.toggle(`hidden`, this.context.list.length == 0);
                         return true;

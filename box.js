@@ -11,7 +11,10 @@
         }
     }
 
+    const nextTick = () => new Promise(resolve => setTimeout(resolve, 0));
+
     let count = 0;
+
     function genID() {
         count = count + 1 % (1 << 8);
         return (((Date.now() % (1 << 15)) << 16) + ((performance.now() * 1000 % (1 << 8)) << 8) + count) | 0;
@@ -34,7 +37,11 @@
         $components = [],
         $text = null,
         $value = null,
+        $datasource = [],
+        $fetch = () => [],
+        $template = null,
         $update = () => true,
+        $render = $template ? () => false : () => true,
         $shadows = [],
         $key = NaN,
         $init = () => true,
@@ -102,25 +109,64 @@
 
             return shadow;
         }));
-        Object.defineProperty(el, `components`, {
-            get() {
-                return $components;
-            },
-            set(newList) {
-                let i = 0;
-                for (i = 0; i < newList.length; i++) {
-                    const node = newList[i];
-                    const skey = node.$key || NaN;
-                    const snode = JSON.stringify(node);
-                    const cpos = $components[i];
-                    const ckey = cpos && cpos.$key || NaN;
-                    if (skey !== ckey) {
+        if ($template) {
+            Object.defineProperty(el, `datasource`, {
+                get() {
+                    return Object.freeze($datasource);
+                },
+                set(newSource) {
+                    console.log(`set`, $datasource, newSource);
+                    let i = 0;
+                    for (; i < newSource.length; i++) {
+                        const node = newSource[i];
+                        const skey = node.$key || NaN;
+                        const snode = JSON.stringify(node);
+                        const cpos = $datasource[i];
+                        const ckey = cpos && cpos.$key || NaN;
+                        if (skey !== ckey) {
+                            let j = i + 1;
+                            for (; j < $datasource.length; j++) {
+                                if ($datasource[j].$key === skey) {
+                                    $datasource.splice(j, 1);
+                                    break;
+                                }
+                            }
+                            if (j < el.childNodes.length) {
+                                el.insertBefore(el.childNodes.item(j), el.childNodes.item(i));
+                            } else {
+                                el.insertBefore(box($template), el.childNodes.item(i));
+                            }
+                            $datasource.splice(i, 0, node);
+                            el.childNodes.item(i).render(node);
+                        } else if (snode !== JSON.stringify(cpos)) {
+                            $datasource[i] = node;
+                            el.childNodes.item(i).render(node);
+                        }
+                    }
+                    $datasource.length = i;
+                    console.log($datasource);
+                    while (i < el.childNodes.length) {
+                        const onode = el.childNodes.item(i);
+                        el.removeChild(onode);
+                    }
+                }
+            });
+        } else
+            Object.defineProperty(el, `components`, {
+                get() {
+                    return $components;
+                },
+                set(newList) {
+                    let i = 0;
+                    for (i = 0; i < newList.length; i++) {
+                        const node = newList[i];
+                        const snode = JSON.stringify(node);
+                        const cpos = $components[i];
+                        if (cpos === snode) continue;
                         let j = i + 1;
                         for (; j < $components.length; j++) {
-                            if ($components[j].$key === skey) {
+                            if (JSON.stringify($components[j]) === snode) {
                                 $components.splice(j, 1);
-                                const target = el.childNodes.item(j);
-                                setTimeout(target.update, 0);
                                 break;
                             }
                         }
@@ -130,26 +176,25 @@
                             el.insertBefore(box(node), el.childNodes.item(i));
                         }
                         $components.splice(i, 0, node);
-                    } else if (snode !== JSON.stringify(cpos)) {
-                        $components[i] = node;
-                        el.childNodes.item(i).update();
+                    }
+                    $components.length = i;
+                    while (i < el.childNodes.length) {
+                        const onode = el.childNodes.item(i);
+                        el.removeChild(onode);
                     }
                 }
-                $components.length = i;
-                while (i < el.childNodes.length) {
-                    const onode = el.childNodes.item(i);
-                    el.removeChild(onode);
-                }
-            }
-        });
+            });
         defineConst(el, `$key`, $key);
-        defineConst(el, `update`, async() => {
-            if (await $update.call(el)) await Promise.all(Array.from(el.childNodes).map(async x => x.update && await x.update()));
+        defineConst(el, `update`, async(obj) => {
+            if ($template) el.datasource = await $fetch.call(el);
+            if (await $update.call(el, obj)) await Promise.all(Array.from(el.childNodes).map(async x => x.update && await x.update(obj)));
+        });
+        defineConst(el, `render`, async(obj) => {
+            if (await $render.call(el, obj)) await Promise.all(Array.from(el.childNodes).map(async x => x.render && await x.render(obj)));
         });
         setTimeout(() => {
             if (el.getRootNode() === el && !(el instanceof ShadowRoot)) return;
             $init.call(el);
-            el.update();
         }, 0);
         return el;
     }
