@@ -16,8 +16,7 @@
         `key`,
         `init`,
         `context`,
-        `methods`,
-        `text`
+        `methods`
     ].reduce((o, name) => ({ ...o,
         [name]: Symbol(name)
     }), {}));
@@ -234,12 +233,34 @@
         };
     }
 
+    function text(slices, ...insert) {
+        const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
+        let matched = target.match(/^\n(\s*)/g);
+        let cooked;
+        if (matched !== null)
+            cooked = target.split(matched[0]).join(`\n`).trim();
+        else
+            cooked = target.trim();
+        return {
+            [symbols.element]: symbols.text,
+            [symbols.value]: cooked
+        };
+    }
+    text.raw = function(slices, ...insert) {
+        const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
+        return {
+            [symbols.element]: symbols.text,
+            [symbols.value]: target
+        };
+    };
+
     defineConst(global, `boxjs`, Object.freeze({
         symbols,
         box,
         utils: {
             nextTick,
             css,
+            text,
             genID
         }
     }));

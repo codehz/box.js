@@ -5,6 +5,7 @@ window.onload = function () {
         symbols: sym,
         utils: {
             css,
+            text,
             genID
         },
         box,
@@ -223,20 +224,17 @@ window.onload = function () {
                                     [sym.value]: `${uncompleted}`
                                 }];
                             }
-                        }, {
-                            [sym.element]: sym.text,
-                            [sym.value]: ` items left`
-                        }]
+                        }, text.raw `\u00A0items left`]
                     }, {
                         [sym.element]: `ul`,
                         [sym.classList]: [`filters`],
+                        [sym.style]: {
+                            textTransform: `capitalize`
+                        },
                         [sym.components]: [`all`, `active`, `completed`].map((name, index) => ({
                             [sym.element]: `li`,
                             [sym.components]: [{
                                 [sym.element]: `a`,
-                                [sym.style]: {
-                                    textTransform: `capitalize`
-                                },
                                 [sym.update]() {
                                     this.classList.toggle(`selected`, index == this[sym.context].mode);
                                 },
