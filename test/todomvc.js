@@ -69,8 +69,9 @@ window.onload = function () {
             };
         },
         [sym.components]: [{
-            [sym.element]: `header`,
+            [sym.element]: `section`,
             [sym.classList]: [`todoapp`],
+            ariaLabel: `TodoApp`,
             [sym.components]: [{
                 [sym.element]: `header`,
                 [sym.classList]: [`header`],
@@ -82,6 +83,7 @@ window.onload = function () {
                     [sym.classList]: [`new-todo`],
                     autofocus: ``,
                     placeholder: `What needs to be done?`,
+                    ariaLabel: `Press the Enter key to add todo`,
                     onkeypress(event) {
                         if (event.keyCode === 13 && this.value.length > 0) {
                             event.preventDefault();
@@ -107,6 +109,7 @@ window.onload = function () {
                     [sym.update]() {
                         this.checked = !this[sym.context].list.find(p => !p.completed);
                     },
+                    ariaLabel: `Toggle all todo's completed state.`,
                     type: `checkbox`,
                     onchange() {
                         this[sym.context].list = this[sym.context].list.map(p => ({ ...p,
@@ -116,12 +119,14 @@ window.onload = function () {
                 }, {
                     [sym.element]: `ul`,
                     [sym.classList]: [`todo-list`],
+                    ariaLabel: `Todo list`,
                     [sym.fetch]() {
                         return this[sym.methods].getFiltered();
                     },
                     [sym.template]: {
                         [sym.element]: `li`,
                         [sym.classList]: [`todo`],
+                        ariaLabel: `Todo item`,
                         [sym.render](node) {
                             this.classList.toggle(`completed`, node.completed);
                             return true;
@@ -131,6 +136,7 @@ window.onload = function () {
                             [sym.components]: [{
                                 [sym.element]: `input`,
                                 [sym.classList]: [`toggle`],
+                                ariaLabel: `Completed`,
                                 onchange() {
                                     this[sym.methods].setItem(this[elKey], {
                                         completed: this.checked
@@ -163,6 +169,8 @@ window.onload = function () {
                             }, {
                                 [sym.element]: `button`,
                                 [sym.classList]: [`destroy`],
+                                ariaHidden: `false`,
+                                ariaLabel: `Delete`,
                                 [sym.render]({
                                     [sym.key]: key
                                 }) {
