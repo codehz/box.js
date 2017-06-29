@@ -50,6 +50,7 @@ window.onload = function () {
                         [sym.key]: genID()
                     }];
                 },
+
                 getFiltered() {
                     return this[sym.context].list.filter(filters[this[sym.context].mode]);
                 },
