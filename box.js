@@ -41,10 +41,11 @@
         ...props
     } = {}) {
         const el = createElement($el);
-        if ($text) $components.unshift({
+        while (el.firstChild) el.removeChild(el.firstChild);
+        if ($text) $components = [{
             $el: `text`,
             $value: $text
-        });
+        }, ...$components];
         if (el.appendChild) $components.forEach(e => el.appendChild(box(e)));
         if (el.style) Object.entries($style).forEach(([k, v]) => el.style[k] = v);
         if (el.classList) $classList.forEach(c => el.classList.add(c));
