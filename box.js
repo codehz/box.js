@@ -59,7 +59,7 @@
         [symbols.text]: $text = null,
         [symbols.value]: $value = null,
         [symbols.datasource]: $datasource = [],
-        [symbols.fetch]: $fetch = () => [],
+        [symbols.fetch]: $fetch = null,
         [symbols.template]: $template = null,
         [symbols.update]: $update = () => true,
         [symbols.render]: $render = $template ? () => false : () => true,
@@ -192,7 +192,7 @@
             });
         defineConst(el, symbols.key, $key);
         defineConst(el, symbols.update, async(obj) => {
-            if ($template) el[symbols.datasource] = await $fetch.call(el);
+            if ($template && $fetch) el[symbols.datasource] = await $fetch.call(el);
             if (await $update.call(el, obj)) await Promise.all(Array.from(el.childNodes).map(async x => x[symbols.update] && await x[symbols.update](obj)));
         });
         defineConst(el, symbols.render, async(obj) => {
