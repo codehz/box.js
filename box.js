@@ -17,7 +17,9 @@
         `init`,
         `context`,
         `methods`,
-        `changed`
+        `changed`,
+        `ignore`,
+        `broadcast`
     ].reduce((o, name) => ({ ...o,
         [name]: Symbol(name)
     }), {}));
@@ -34,7 +36,7 @@
         }
     }
 
-    const nextTick = () => new Promise(resolve => setTimeout(resolve, 0));
+    const nextTick = (delay = 0) => new Promise(resolve => setTimeout(resolve, delay));
 
     let count = 0;
 
@@ -59,9 +61,9 @@
         [symbols.text]: $text = null,
         [symbols.value]: $value = null,
         [symbols.datasource]: $datasource = [],
-        [symbols.fetch]: $fetch = null,
+        [symbols.fetch]: $fetch = () => symbols.ignore,
         [symbols.template]: $template = null,
-        [symbols.update]: $update = () => true,
+        [symbols.update]: $update = () => symbols.broadcast,
         [symbols.render]: $render = $template ? () => false : () => true,
         [symbols.shadows]: $shadows = [],
         [symbols.key]: $key = NaN,
@@ -93,8 +95,10 @@
                 if (property in $context) {
                     if (el[symbols.changed].size === 0) {
                         setTimeout(async() => {
-                            await el[symbols.update](el[symbols.changed]);
+                            const next = await el[symbols.update](el[symbols.changed]);
                             el[symbols.changed].clear();
+                            await nextTick();
+                            await Promise.all(next.map(x => typeof x === `function` ? x() : 0));
                         }, 0);
                     }
                     el[symbols.changed].add(property);
@@ -120,16 +124,20 @@
         if ($template) {
             Object.defineProperty(el, symbols.datasource, {
                 get() {
-                    return Object.freeze($datasource);
+                    return Array.from($datasource);
                 },
                 set(newSource) {
                     let i = 0;
                     for (; i < newSource.length; i++) {
                         const node = newSource[i];
-                        const skey = node[symbols.key] || NaN;
+                        const {
+                            [symbols.key]: skey = NaN
+                        } = node;
                         const snode = JSON.stringify(node);
-                        const cpos = $datasource[i];
-                        const ckey = cpos && cpos[symbols.key] || NaN;
+                        const cpos = $datasource[i] || {};
+                        const {
+                            [symbols.key]: ckey = NaN
+                        } = cpos;
                         if (skey !== ckey) {
                             let j = i + 1;
                             for (; j < $datasource.length; j++) {
@@ -192,11 +200,25 @@
             });
         defineConst(el, symbols.key, $key);
         defineConst(el, symbols.update, async(obj) => {
-            if ($template && $fetch) el[symbols.datasource] = await $fetch.call(el);
-            if (await $update.call(el, obj)) await Promise.all(Array.from(el.childNodes).map(async x => x[symbols.update] && await x[symbols.update](obj)));
+            if ($template) {
+                const newDataSource = await $fetch.call(el, obj);
+                if (newDataSource !== symbols.ignore)
+                    el[symbols.datasource] = newDataSource;
+            }
+            const result = await $update.call(el, obj);
+            if (result === symbols.broadcast)
+                return [].concat.apply([],
+                    await Promise.all(Array.from(el.childNodes).map(
+                        async x => x[symbols.update] && await x[symbols.update](obj)))).filter(x => x !== symbols.ignore);
+            return [result].filter(x => x !== symbols.ignore);
         });
         defineConst(el, symbols.render, async(obj) => {
-            if (await $render.call(el, obj)) await Promise.all(Array.from(el.childNodes).map(async x => x[symbols.render] && await x[symbols.render](obj)));
+            const result = await $render.call(el, obj);
+            if (result === symbols.broadcast)
+                return [].concat.apply([],
+                    await Promise.all(Array.from(el.childNodes).map(
+                        async x => x[symbols.render] && await x[symbols.render](obj)))).filter(x => x !== symbols.ignore);
+            return [result].filter(x => x !== symbols.ignore);
         });
         setTimeout(() => {
             if (el.getRootNode() === el && !(el instanceof ShadowRoot)) return;

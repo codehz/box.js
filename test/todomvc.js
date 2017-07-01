@@ -101,7 +101,7 @@ window.onload = function () {
                 [sym.update]() {
                     const filtered = this[sym.methods].getFiltered();
                     this.classList.toggle(`hidden`, filtered.length == 0);
-                    return true;
+                    return sym.broadcast;
                 },
                 [sym.components]: [{
                     [sym.element]: `input`,
@@ -129,7 +129,7 @@ window.onload = function () {
                         ariaLabel: `Todo item`,
                         [sym.render](node) {
                             this.classList.toggle(`completed`, node.completed);
-                            return true;
+                            return sym.broadcast;
                         },
                         [sym.components]: [{
                             [sym.classList]: [`view`],
@@ -215,7 +215,7 @@ window.onload = function () {
                 },
                 [sym.update]() {
                     this.classList.toggle(`hidden`, this[sym.context].list.length == 0);
-                    return true;
+                    return sym.broadcast;
                 },
                 [sym.components]: [{
                     [sym.element]: `span`,
@@ -253,7 +253,7 @@ window.onload = function () {
                     [sym.update]() {
                         const uncompleted = this[sym.context].list.reduce((p, c) => p + (c.completed ? 1 : 0), 0);
                         this.classList.toggle(`hidden`, uncompleted == 0);
-                        return true;
+                        return sym.broadcast;
                     },
                     [sym.text]: `Clear completed`,
                     onclick() {
