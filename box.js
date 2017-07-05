@@ -20,7 +20,7 @@
         `changed`,
         `ignore`,
         `broadcast`
-    ].reduce((o, name) => ({ ...o,
+    ].reduce((o, name) => Object.assign({}, o, {
         [name]: Symbol(name)
     }), {}));
 
@@ -115,12 +115,11 @@
                     return el.parentNode[symbols.methods][property];
             }
         }));
-        defineConst(el, symbols.shadows, $shadows.map(content => box({
-            ...content,
+        defineConst(el, symbols.shadows, $shadows.map(content => box(Object.assign(content, {
             [symbols.element]: el.attachShadow({
                 mode: `open`
             })
-        })));
+        }))));
         if ($template) {
             Object.defineProperty(el, symbols.datasource, {
                 get() {
