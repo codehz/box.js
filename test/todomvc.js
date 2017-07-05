@@ -155,7 +155,6 @@ window.onload = function() {
                                                         this.parentNode.parentNode.querySelector(`input.edit`).focus();
                                                     },
                                                     [sym.render]({ title, [sym.key]: key }) {
-                                                        console.log(`text`, title);
                                                         this[sym.components] = [text.raw`${title}`];
                                                         this[elKey] = key;
                                                     }

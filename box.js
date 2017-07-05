@@ -281,7 +281,6 @@
         });
         defineConst(el, symbols.render, async obj => {
             const result = await $render.call(el, obj);
-            console.log($render, obj, result);
             if (result === symbols.broadcast)
                 return [].concat
                     .apply(
