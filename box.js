@@ -339,7 +339,7 @@
         if (/#[a-zA-Z][^\.#\[\]]*/g.test(target)) addition.id = target.match(/#[a-zA-Z][^\.#]*/g)[0].slice(1);
         if (/\.[a-zA-Z][^\.#\[\]]*/g.test(target)) addition[symbols.classList] = target.match(/\.[a-zA-Z][^\.#\[\]]*/g).map(x => x.slice(1));
         if (/\[[a-zA-Z][^.#\[\]]*=[^\]\[]+\]/g.test(target)) target.match(/\[[a-zA-Z][^.#\[\]]*=[^\]\[]+\]/g).forEach(equ => addition[equ.match(/\[([a-zA-Z][^.#\[\]]+)=/)[1]] = JSON.parse(equ.match(/=([^\]\[]+)\]/)[1]));
-        return obj => Object.assign(obj, addition);
+        return (obj = {}) => Object.assign(obj, addition);
     }
 
     defineConst(
