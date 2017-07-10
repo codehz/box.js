@@ -346,13 +346,15 @@
                     equ =>
                         (addition[equ.match(/\[([a-zA-Z][^.#\[\]]+)=/)[1]] = JSON.parse(equ.match(/=([^\]\[]+)\]/)[1]))
                 );
-        return (obj = {}) =>
+        return (...arr) =>
             Object.assign(
-                typeof obj === `object`
-                    ? obj
-                    : {
-                        [symbols.text]: `${obj}`
-                    },
+                {},
+                ...arr.map(
+                    obj =>
+                        typeof obj === `string`
+                            ? { [symbols.text]: `${obj}` }
+                            : Array.isArray(obj) ? { [symbols.components]: obj } : obj
+                ),
                 addition
             );
     }

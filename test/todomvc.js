@@ -1,7 +1,7 @@
 window.onload = function() {
     `use strict`;
 
-    const { symbols: sym, utils: { text, genID }, box } = window.boxjs;
+    const { symbols: sym, utils: { text, genID, el }, box } = window.boxjs;
 
     const elKey = Symbol(`elKey`);
 
@@ -57,38 +57,24 @@ window.onload = function() {
             };
         },
         [sym.components]: [
-            {
-                [sym.element]: `section`,
-                [sym.classList]: [`todoapp`],
-                ariaLabel: `TodoApp`,
-                [sym.components]: [
-                    {
-                        [sym.element]: `header`,
-                        [sym.classList]: [`header`],
-                        [sym.components]: [
-                            {
-                                [sym.element]: `h1`,
-                                [sym.text]: `todos`
-                            },
-                            {
-                                [sym.element]: `input`,
-                                [sym.classList]: [`new-todo`],
-                                autofocus: ``,
-                                placeholder: `What needs to be done?`,
-                                ariaLabel: `Press the Enter key to add todo`,
-                                onkeypress(event) {
-                                    if (event.keyCode === 13 && this.value.length > 0) {
-                                        event.preventDefault();
-                                        this[sym.methods].addTodo(this.value);
-                                        this.value = ``;
-                                    }
-                                }
+            el`section.todoapp[ariaLabel="TodoApp"]`([
+                el`header.header`([
+                    el`h1`(`todos`),
+                    el`input.new-todo`({
+                        autofocus: ``,
+                        placeholder: `What needs to be done?`,
+                        ariaLabel: `Press the Enter key to add todo`,
+                        onkeypress(event) {
+                            if (event.keyCode === 13 && this.value.length > 0) {
+                                event.preventDefault();
+                                this[sym.methods].addTodo(this.value);
+                                this.value = ``;
                             }
-                        ]
-                    },
+                        }
+                    })
+                ]),
+                el`section.main`(
                     {
-                        [sym.element]: `section`,
-                        [sym.classList]: [`main`],
                         [sym.init]() {
                             this[sym.update]();
                         },
@@ -96,204 +82,145 @@ window.onload = function() {
                             const filtered = this[sym.methods].getFiltered();
                             this.classList.toggle(`hidden`, filtered.length == 0);
                             return sym.broadcast;
-                        },
-                        [sym.components]: [
-                            {
-                                [sym.element]: `input`,
-                                [sym.classList]: [`toggle-all`],
-                                [sym.update]() {
-                                    this.checked = !this[sym.context].list.find(p => !p.completed);
-                                },
-                                ariaLabel: `Toggle all todo's completed state.`,
-                                type: `checkbox`,
-                                onchange() {
-                                    this[sym.context].list = this[sym.context].list.map(p =>
-                                        Object.assign({}, p, {
-                                            completed: this.checked
-                                        })
-                                    );
-                                }
+                        }
+                    },
+                    [
+                        el`input.toggle-all[type="checkbox"]`({
+                            [sym.update]() {
+                                this.checked = !this[sym.context].list.find(p => !p.completed);
                             },
-                            {
-                                [sym.element]: `ul`,
-                                [sym.classList]: [`todo-list`],
-                                ariaLabel: `Todo list`,
-                                [sym.fetch]() {
-                                    return this[sym.methods].getFiltered();
-                                },
-                                [sym.template]: {
-                                    [sym.element]: `li`,
-                                    [sym.classList]: [`todo`],
-                                    ariaLabel: `Todo item`,
+                            ariaLabel: `Toggle all todo's completed state.`,
+                            onchange() {
+                                this[sym.context].list = this[sym.context].list.map(p =>
+                                    Object.assign({}, p, {
+                                        completed: this.checked
+                                    })
+                                );
+                            }
+                        }),
+                        el`ul.todo-list[ariaLabel="Todo list"]`({
+                            [sym.fetch]() {
+                                return this[sym.methods].getFiltered();
+                            },
+                            [sym.template]: el`li.todo[ariaLabel="Todo item"]`(
+                                {
                                     [sym.render](node) {
                                         this.classList.toggle(`completed`, node.completed);
                                         return sym.broadcast;
-                                    },
-                                    [sym.components]: [
-                                        {
-                                            [sym.classList]: [`view`],
-                                            [sym.components]: [
-                                                {
-                                                    [sym.element]: `input`,
-                                                    [sym.classList]: [`toggle`],
-                                                    ariaLabel: `Completed`,
-                                                    onchange() {
-                                                        this[sym.methods].setItem(this[elKey], {
-                                                            completed: this.checked
-                                                        });
-                                                    },
-                                                    [sym.render]({ completed, [sym.key]: key }) {
-                                                        this[elKey] = key;
-                                                        this.checked = completed;
-                                                    },
-                                                    type: `checkbox`
-                                                },
-                                                {
-                                                    [sym.element]: `label`,
-                                                    ondblclick() {
-                                                        this.parentNode.parentNode.classList.toggle(`editing`, true);
-                                                        this.parentNode.parentNode.querySelector(`input.edit`).focus();
-                                                    },
-                                                    [sym.render]({ title, [sym.key]: key }) {
-                                                        this[sym.components] = [text.raw`${title}`];
-                                                        this[elKey] = key;
-                                                    }
-                                                },
-                                                {
-                                                    [sym.element]: `button`,
-                                                    [sym.classList]: [`destroy`],
-                                                    ariaHidden: `false`,
-                                                    ariaLabel: `Delete`,
-                                                    [sym.render]({ [sym.key]: key }) {
-                                                        this[elKey] = key;
-                                                    },
-                                                    onclick(event) {
-                                                        event.preventDefault();
-                                                        this[sym.methods].removeItem(this[elKey]);
-                                                    }
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            [sym.element]: `input`,
-                                            [sym.classList]: [`edit`],
-                                            [sym.render]({ title, [sym.key]: key }) {
-                                                this.value = title;
-                                                this[elKey] = key;
-                                            },
-                                            type: `text`,
-                                            onblur() {
-                                                this.parentNode.classList.toggle(`editing`, false);
-                                                if (this.value === ``) return;
+                                    }
+                                },
+                                [
+                                    el`div.view`([
+                                        el`input.toggle[type="checkbox"][ariaLabel="Completed"]`({
+                                            onchange() {
                                                 this[sym.methods].setItem(this[elKey], {
-                                                    title: this.value
+                                                    completed: this.checked
                                                 });
                                             },
-                                            onkeypress() {
-                                                if (event.keyCode === 13) {
-                                                    this.blur();
-                                                }
+                                            [sym.render]({ completed, [sym.key]: key }) {
+                                                this[elKey] = key;
+                                                this.checked = completed;
+                                            }
+                                        }),
+                                        el`label`({
+                                            ondblclick() {
+                                                this.parentNode.parentNode.classList.toggle(`editing`, true);
+                                                this.parentNode.parentNode.querySelector(`input.edit`).focus();
+                                            },
+                                            [sym.render]({ title, [sym.key]: key }) {
+                                                this[sym.components] = [text.raw`${title}`];
+                                                this[elKey] = key;
+                                            }
+                                        }),
+                                        el`button.destroy`({
+                                            ariaHidden: `false`,
+                                            ariaLabel: `Delete`,
+                                            [sym.render]({ [sym.key]: key }) {
+                                                this[elKey] = key;
+                                            },
+                                            onclick(event) {
+                                                event.preventDefault();
+                                                this[sym.methods].removeItem(this[elKey]);
+                                            }
+                                        })
+                                    ]),
+                                    el`input.edit[type="text"]`({
+                                        [sym.render]({ title, [sym.key]: key }) {
+                                            this.value = title;
+                                            this[elKey] = key;
+                                        },
+                                        onblur() {
+                                            this.parentNode.classList.toggle(`editing`, false);
+                                            if (this.value === ``) return;
+                                            this[sym.methods].setItem(this[elKey], {
+                                                title: this.value
+                                            });
+                                        },
+                                        onkeypress() {
+                                            if (event.keyCode === 13) {
+                                                this.blur();
                                             }
                                         }
-                                    ]
-                                }
-                            }
-                        ]
-                    },
+                                    })
+                                ]
+                            )
+                        })
+                    ]
+                ),
+                el`footer.footer`(
                     {
-                        [sym.element]: `footer`,
-                        [sym.classList]: [`footer`],
                         [sym.init]() {
                             this[sym.update]();
                         },
                         [sym.update]() {
                             this.classList.toggle(`hidden`, this[sym.context].list.length == 0);
                             return sym.broadcast;
-                        },
-                        [sym.components]: [
-                            {
-                                [sym.element]: `span`,
-                                [sym.classList]: [`todo-count`],
-                                [sym.components]: [
-                                    {
-                                        [sym.element]: `strong`,
-                                        [sym.update]() {
-                                            const uncompleted = this[sym.context].list.reduce(
-                                                (p, c) => p + (c.completed ? 0 : 1),
-                                                0
-                                            );
-                                            this[sym.components] = [
-                                                {
-                                                    [sym.element]: sym.text,
-                                                    [sym.value]: `${uncompleted}`
-                                                }
-                                            ];
-                                        }
-                                    },
-                                    text.raw`\u00A0items left`
-                                ]
-                            },
-                            {
-                                [sym.element]: `ul`,
-                                [sym.classList]: [`filters`],
-                                [sym.style]: {
-                                    textTransform: `capitalize`
-                                },
-                                [sym.components]: [`all`, `active`, `completed`].map((name, index) => ({
-                                    [sym.element]: `li`,
-                                    [sym.components]: [
-                                        {
-                                            [sym.element]: `a`,
-                                            [sym.update]() {
-                                                this.classList.toggle(`selected`, index == this[sym.context].mode);
-                                            },
-                                            href: `#/${name}`,
-                                            [sym.text]: `${name}\u200B`
-                                        }
-                                    ]
-                                }))
-                            },
-                            {
-                                [sym.element]: `button`,
-                                [sym.classList]: [`clear-completed`],
+                        }
+                    },
+                    [
+                        el`span.todo-count`([
+                            el`strong`({
                                 [sym.update]() {
                                     const uncompleted = this[sym.context].list.reduce(
-                                        (p, c) => p + (c.completed ? 1 : 0),
+                                        (p, c) => p + (c.completed ? 0 : 1),
                                         0
                                     );
-                                    this.classList.toggle(`hidden`, uncompleted == 0);
-                                    return sym.broadcast;
-                                },
-                                [sym.text]: `Clear completed`,
-                                onclick() {
-                                    this[sym.context].list = this[sym.context].list.filter(filters[1]);
+                                    this[sym.components] = [text.raw`${uncompleted}`];
                                 }
+                            }),
+                            text.raw`\u00A0items left`
+                        ]),
+                        el`ul.filters[style="text-transform: capitalize"]`(
+                            [`all`, `active`, `completed`].map((name, index) =>
+                                el`li`([
+                                    el`a[href="#/${name}"]`(`${name}\u200B`, {
+                                        [sym.update]() {
+                                            this.classList.toggle(`selected`, index == this[sym.context].mode);
+                                        }
+                                    })
+                                ])
+                            )
+                        ),
+                        el`button.clear-completed`(`Clear completed`, {
+                            [sym.update]() {
+                                const uncompleted = this[sym.context].list.reduce(
+                                    (p, c) => p + (c.completed ? 1 : 0),
+                                    0
+                                );
+                                this.classList.toggle(`hidden`, uncompleted == 0);
+                                return sym.broadcast;
+                            },
+                            onclick() {
+                                this[sym.context].list = this[sym.context].list.filter(filters[1]);
                             }
-                        ]
-                    }
-                ]
-            },
-            {
-                [sym.element]: `footer`,
-                [sym.classList]: [`info`],
-                [sym.components]: [
-                    {
-                        [sym.element]: `p`,
-                        [sym.text]: `Double-click to edit a todo`
-                    },
-                    {
-                        [sym.element]: `p`,
-                        [sym.text]: `Written by `,
-                        [sym.components]: [
-                            {
-                                [sym.element]: `a`,
-                                [sym.text]: `CodeHz`,
-                                href: `https://github/CodeHz`
-                            }
-                        ]
-                    }
-                ]
-            }
+                        })
+                    ]
+                )
+            ]),
+            el`footer.info`([
+                el`p`(`Double-click to edit a todo`),
+                el`p`(`Written by `, [el`a[href="https://github/CodeHz"]`(`CodeHz`)])
+            ])
         ]
     });
 };
