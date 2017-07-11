@@ -334,17 +334,17 @@
     function el(slices, ...insert) {
         const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
         const addition = {
-            [symbols.element]: target.match(/[a-zA-Z][^\.#\[\]]*/g)[0]
+            [symbols.element]: target.match(/^\w*/g)[0]
         };
-        if (/#[a-zA-Z][^\.#\[\]]*/g.test(target)) addition.id = target.match(/#[a-zA-Z][^\.#]*/g)[0].slice(1);
-        if (/\.[a-zA-Z][^\.#\[\]]*/g.test(target))
-            addition[symbols.classList] = target.match(/\.[a-zA-Z][^\.#\[\]]*/g).map(x => x.slice(1));
-        if (/\[[a-zA-Z][^.#\[\]]*=[^\]\[]+\]/g.test(target))
+        if (/#\w*/g.test(target)) addition.id = target.match(/#\w*/g)[0].slice(1);
+        if (/\.\w*/g.test(target))
+            addition[symbols.classList] = target.match(/\.\w*/g).map(x => x.slice(1));
+        if (/\[\w*=[\w\"\\]*\]/g.test(target))
             target
-                .match(/\[[a-zA-Z][^.#\[\]]*=[^\]\[]+\]/g)
+                .match(/\[\w*=[\w\"\\]*\]/g)
                 .forEach(
                     equ =>
-                        (addition[equ.match(/\[([a-zA-Z][^.#\[\]]+)=/)[1]] = JSON.parse(equ.match(/=([^\]\[]+)\]/)[1]))
+                        (addition[equ.match(/\[(\w*)=/)[1]] = JSON.parse(equ.match(/=([\w\"\\]*)\]/)[1]))
                 );
         return (...arr) =>
             Object.assign(
