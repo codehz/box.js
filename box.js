@@ -334,7 +334,7 @@
     function el(slices, ...insert) {
         const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
         const addition = {
-            [symbols.element]: target.match(/^\w*/g)[0]
+            [symbols.element]: target.match(/^[\w\-]*/g)[0]
         };
         if (/#[\w\-_]*/g.test(target)) addition.id = target.match(/#[\w\-_]*/g)[0].slice(1);
         if (/\.[\w\-_]*/g.test(target))
