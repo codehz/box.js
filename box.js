@@ -13,6 +13,7 @@
             `template`,
             `update`,
             `render`,
+            `autoupdate`,
             `shadows`,
             `key`,
             `init`,
@@ -109,6 +110,7 @@
             [symbols.template]: $template = null,
             [symbols.update]: $update = () => symbols.broadcast,
             [symbols.render]: $render = $template ? () => symbols.ignore : () => symbols.broadcast,
+            [symbols.autoupdate]: $autoupdate = [],
             [symbols.shadows]: $shadows = [],
             [symbols.key]: $key = NaN,
             [symbols.init]: $init = () => true,
@@ -248,7 +250,7 @@
                         if (j < el.childNodes.length) {
                             el.insertBefore(el.childNodes.item(j), el.childNodes.item(i));
                         } else {
-                            el.insertBefore(box(node), el.childNodes.item(i));
+                            el.insertBefore(_new, el.childNodes.item(i));
                         }
                         $components.splice(i, 0, node);
                     }
@@ -297,6 +299,9 @@
         setTimeout(() => {
             if (el.getRootNode() === el && !(el instanceof ShadowRoot)) return;
             $init.call(el);
+            if ($autoupdate.length > 0) {
+                el[symbols.update]($autoupdate);
+            }
         }, 0);
         return el;
     }
@@ -337,14 +342,12 @@
             [symbols.element]: target.match(/^[\w\-]*/g)[0]
         };
         if (/#[\w\-_]*/g.test(target)) addition.id = target.match(/#[\w\-_]*/g)[0].slice(1);
-        if (/\.[\w\-_]*/g.test(target))
-            addition[symbols.classList] = target.match(/\.[\w\-_]*/g).map(x => x.slice(1));
+        if (/\.[\w\-_]*/g.test(target)) addition[symbols.classList] = target.match(/\.[\w\-_]*/g).map(x => x.slice(1));
         if (/\[[\w_]+=(?:\\.|[^\]])+\]/g.test(target))
             target
                 .match(/\[[\w_]+=(?:\\.|[^\]])+\]/g)
                 .forEach(
-                    equ =>
-                        (addition[equ.match(/\[([\w_]+)=/)[1]] = JSON.parse(equ.match(/=((?:\\.|[^\]])+)\]/)[1]))
+                    equ => (addition[equ.match(/\[([\w_]+)=/)[1]] = JSON.parse(equ.match(/=((?:\\.|[^\]])+)\]/)[1]))
                 );
         return (...arr) =>
             Object.assign(
