@@ -138,10 +138,48 @@
                     typeof v === `string` ? el.setAttribute(k.replace(/([A-Z])/g, `-$1`).toLowerCase(), v) : (el[k] = v)
             );
         defineConst(el, symbols.changed, new Set());
+        function triggerUpdate(path) {
+            if (el[symbols.changed].size === 0) {
+                setTimeout(async () => {
+                    const next = await el[symbols.update](el[symbols.changed]);
+                    el[symbols.changed].clear();
+                    await nextTick();
+                    await Promise.all(next.map(x => (typeof x === `function` ? x() : 0)));
+                }, 0);
+            }
+            el[symbols.changed].add(path);
+        }
         defineConst(
             el,
             symbols.context,
-            new Proxy($context, {
+            new Proxy(function() {}, {
+                apply(target, thisArg, argumentsList) {
+                    const next = argumentsList.reduce((p, { path: [property, ...rest], value }) => {
+                        if (property in $context) {
+                            triggerUpdate(property);
+                            if (rest.length === 0) {
+                                if (typeof value === `function`) $context[property] = value($context[property]);
+                                else $context[property] = value;
+                            } else {
+                                rest.reduce((p, c) => {
+                                    const ret = [p, c].join(`/`);
+                                    triggerUpdate(ret);
+                                    return ret;
+                                }, property);
+                                const key = rest.pop();
+                                const target = rest.reduce((p, c) => p[c] || (p[c] = {}), $context);
+                                if (typeof value === `function`) target[key] = value(target[key]);
+                                target[key] = value;
+                            }
+                            return p;
+                        } else {
+                            return [...p, { path: [property, ...rest], value }];
+                        }
+                    }, []);
+                    if (next.length && el.parentNode && el.parentNode[symbols.context])
+                        el.parentNode[symbols.context](...next);
+                    return undefined;
+                },
                 get(target, property) {
                     if (property in $context) return $context[property];
                     else if (el.parentNode && el.parentNode[symbols.context])
@@ -149,15 +187,7 @@
                 },
                 set(target, property, value) {
                     if (property in $context) {
-                        if (el[symbols.changed].size === 0) {
-                            setTimeout(async () => {
-                                const next = await el[symbols.update](el[symbols.changed]);
-                                el[symbols.changed].clear();
-                                await nextTick();
-                                await Promise.all(next.map(x => (typeof x === `function` ? x() : 0)));
-                            }, 0);
-                        }
-                        el[symbols.changed].add(property);
+                        triggerUpdate(property);
                         return ($context[property] = value);
                     } else if (el.parentNode && el.parentNode[symbols.context])
                         return (el.parentNode[symbols.context][property] = value);
@@ -250,7 +280,7 @@
                         if (j < el.childNodes.length) {
                             el.insertBefore(el.childNodes.item(j), el.childNodes.item(i));
                         } else {
-                            el.insertBefore(_new, el.childNodes.item(i));
+                            el.insertBefore(box(node), el.childNodes.item(i));
                         }
                         $components.splice(i, 0, node);
                     }
@@ -362,6 +392,14 @@
             );
     }
 
+    function patch(slices, ...insert) {
+        const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
+        return value => ({
+            path: target.split(`/`),
+            value
+        });
+    }
+
     defineConst(
         global,
         `boxjs`,
@@ -373,7 +411,8 @@
                 css,
                 text,
                 genID,
-                el
+                el,
+                patch
             }
         })
     );

@@ -1,7 +1,7 @@
 window.onload = function() {
     `use strict`;
 
-    const { symbols: sym, utils: { text, genID, el }, box } = window.boxjs;
+    const { symbols: sym, utils: { text, genID, el, patch }, box } = window.boxjs;
 
     const elKey = Symbol(`elKey`);
 
@@ -27,14 +27,16 @@ window.onload = function() {
         },
         [sym.methods]: {
             addTodo(title) {
-                this[sym.context].list = [
-                    ...this[sym.context].list,
-                    {
-                        title,
-                        completed: false,
-                        [sym.key]: genID()
-                    }
-                ];
+                this[sym.context](
+                    patch`list`(list => [
+                        ...list,
+                        {
+                            title,
+                            completed: false,
+                            [sym.key]: genID()
+                        }
+                    ])
+                );
             },
 
             getFiltered() {
@@ -42,8 +44,8 @@ window.onload = function() {
             },
 
             setItem(key, obj) {
-                this[sym.context].list = this[sym.context].list.map(
-                    x => (x[sym.key] === key ? Object.assign({}, x, obj) : x)
+                this[sym.context](
+                    patch`list`(list => list.map(x => (x[sym.key] === key ? Object.assign({}, x, obj) : x)))
                 );
             },
 
@@ -53,7 +55,7 @@ window.onload = function() {
         },
         [sym.init]() {
             window.onhashchange = () => {
-                this[sym.context].mode = getMode();
+                this[sym.context](patch`mode`(getMode()));
             };
         },
         [sym.components]: [
@@ -91,10 +93,14 @@ window.onload = function() {
                             },
                             ariaLabel: `Toggle all todo's completed state.`,
                             onchange() {
-                                this[sym.context].list = this[sym.context].list.map(p =>
-                                    Object.assign({}, p, {
-                                        completed: this.checked
-                                    })
+                                this[sym.context](
+                                    patch`list`(list =>
+                                        list.map(p =>
+                                            Object.assign({}, p, {
+                                                completed: this.checked
+                                            })
+                                        )
+                                    )
                                 );
                             }
                         }),
@@ -211,7 +217,7 @@ window.onload = function() {
                                 return sym.broadcast;
                             },
                             onclick() {
-                                this[sym.context].list = this[sym.context].list.filter(filters[1]);
+                                this[sym.context](patch`list`(list => list.filter(filters[1])));
                             }
                         })
                     ]
