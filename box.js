@@ -369,16 +369,18 @@
     function el(slices, ...insert) {
         const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
         const addition = {
-            [symbols.element]: target.match(/^[\w\-]*/g)[0]
+            [symbols.element]: target.match(/^[\w-]*/g)[0]
         };
-        if (/#[\w\-_]*/g.test(target)) addition.id = target.match(/#[\w\-_]*/g)[0].slice(1);
-        if (/\.[\w\-_]*/g.test(target)) addition[symbols.classList] = target.match(/\.[\w\-_]*/g).map(x => x.slice(1));
+        if (/#[\w-_]*/g.test(target)) addition.id = target.match(/#[\w-_]*/g)[0].slice(1);
+        if (/\.[\w-_]*/g.test(target)) addition[symbols.classList] = target.match(/\.[\w-_]*/g).map(x => x.slice(1));
         if (/\[[\w_]+=(?:\\.|[^\]])+\]/g.test(target))
             target
                 .match(/\[[\w_]+=(?:\\.|[^\]])+\]/g)
                 .forEach(
                     equ => (addition[equ.match(/\[([\w_]+)=/)[1]] = JSON.parse(equ.match(/=((?:\\.|[^\]])+)\]/)[1]))
                 );
+        if (/\[[\w_]\]/g.test(target))
+            target.match(/\[[\w_]+\]/g).forEach(attr => (addition[attr.match(/\[([\w_]+)\]/)[1]] = true));
         return (...arr) =>
             Object.assign(
                 {},
