@@ -402,7 +402,9 @@
         });
     }
 
-    function watch(...paths) {
+    function watch(slices, ...insert) {
+        const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
+        const paths = target.split(`;`);
         return fn =>
             function(set) {
                 if (paths.reduce((p, c) => p || set.has(c), false)) fn.call(null, this);
