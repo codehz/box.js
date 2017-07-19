@@ -109,7 +109,7 @@
             [symbols.fetch]: $fetch = () => symbols.default,
             [symbols.template]: $template = null,
             [symbols.update]: $update = () => symbols.default,
-            [symbols.render]: $render = $template ? () => symbols.ignore : () => symbols.default,
+            [symbols.render]: $render = () => symbols.default,
             [symbols.autoupdate]: $autoupdate = [],
             [symbols.shadows]: $shadows = [],
             [symbols.key]: $key = NaN,
