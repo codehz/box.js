@@ -31,6 +31,11 @@
         )
     );
 
+    function traceObject(obj, prefix) {
+        if (typeof obj !== `object` || (obj.constructor !== Object && obj.constructor !== null)) return [prefix];
+        return Object.keys(obj).reduce((p, k) => [...p, ...traceObject(obj[k], `${prefix}/${k}`)], [prefix]);
+    }
+
     Object.prototype.hasOwnProperty.call(Node.prototype, `getRootNode`) ||
         (() => {
             function getRootNode(opt) {
@@ -161,15 +166,16 @@
                                 if (typeof value === `function`) $context[property] = value($context[property]);
                                 else $context[property] = value;
                             } else {
-                                rest.reduce((p, c) => {
-                                    const ret = [p, c].join(`/`);
-                                    triggerUpdate(ret);
-                                    return ret;
-                                }, property);
                                 const key = rest.pop();
                                 const target = rest.reduce((p, c) => p[c] || (p[c] = {}), $context);
                                 if (typeof value === `function`) target[key] = value(target[key]);
                                 target[key] = value;
+                                const prefix = rest.reduce((p, c) => {
+                                    const ret = [p, c].join(`/`);
+                                    triggerUpdate(ret);
+                                    return ret;
+                                }, property);
+                                traceObject(value, `${prefix}/${key}`).forEach(triggerUpdate);
                             }
                             return p;
                         } else {

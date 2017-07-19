@@ -183,7 +183,6 @@ window.onload = function() {
                         el`span.todo-count`([
                             el`strong`({
                                 [sym.update]: watch`list`((self, list) => {
-                                    console.log(list);
                                     const uncompleted = list.reduce((p, c) => p + (c.completed ? 0 : 1), 0);
                                     self[sym.components] = [text.raw`${uncompleted | 0} `];
                                 })
