@@ -193,7 +193,7 @@
                 },
                 set(target, property, value) {
                     if (property in $context) {
-                        triggerUpdate(property);
+                        traceObject(value, property).forEach(triggerUpdate);
                         return ($context[property] = value);
                     } else if (el.parentNode && el.parentNode[symbols.context])
                         return (el.parentNode[symbols.context][property] = value);
