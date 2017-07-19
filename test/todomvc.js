@@ -1,7 +1,7 @@
 window.onload = function() {
     `use strict`;
 
-    const { symbols: sym, utils: { text, genID, el, patch }, box } = window.boxjs;
+    const { symbols: sym, utils: { text, genID, el, patch, watch }, box } = window.boxjs;
 
     const elKey = Symbol(`elKey`);
 
@@ -13,7 +13,7 @@ window.onload = function() {
             [`#/completed`]: 2
         }[hash];
         if (typeof ret === `number`) return ret;
-        location.hash = `#\all`;
+        location.hash = `#/all`;
         return 0;
     }
 
@@ -78,19 +78,17 @@ window.onload = function() {
                 el`section.main`(
                     {
                         [sym.init]() {
-                            this[sym.update]();
+                            this[sym.update](new Set([`list`]));
                         },
-                        [sym.update]() {
-                            const filtered = this[sym.methods].getFiltered();
-                            this.classList.toggle(`hidden`, filtered.length == 0);
-                            return sym.broadcast;
-                        }
+                        [sym.update]: watch`list;mode`(self => {
+                            const filtered = self[sym.methods].getFiltered();
+                            self.classList.toggle(`hidden`, filtered.length == 0);
+                            return sym.default;
+                        })
                     },
                     [
                         el`input.toggle-all[type="checkbox"]`({
-                            [sym.update]() {
-                                this.checked = !this[sym.context].list.find(p => !p.completed);
-                            },
+                            [sym.update]: watch`list`((self, list) => (self.checked = !list.find(p => !p.completed))),
                             ariaLabel: `Toggle all todo's completed state.`,
                             onchange() {
                                 this[sym.context](
@@ -105,14 +103,12 @@ window.onload = function() {
                             }
                         }),
                         el`ul.todo-list[ariaLabel="Todo list"]`({
-                            [sym.fetch]() {
-                                return this[sym.methods].getFiltered();
-                            },
+                            [sym.fetch]: watch`list;mode`(self => self[sym.methods].getFiltered()),
                             [sym.template]: el`li.todo[ariaLabel="Todo item"]`(
                                 {
                                     [sym.render](node) {
                                         this.classList.toggle(`completed`, node.completed);
-                                        return sym.broadcast;
+                                        return sym.default;
                                     }
                                 },
                                 [
@@ -176,46 +172,41 @@ window.onload = function() {
                 el`footer.footer`(
                     {
                         [sym.init]() {
-                            this[sym.update]();
+                            this[sym.update](new Set([`list`]));
                         },
-                        [sym.update]() {
-                            this.classList.toggle(`hidden`, this[sym.context].list.length == 0);
-                            return sym.broadcast;
-                        }
+                        [sym.update]: watch`list`((self, list) => {
+                            self.classList.toggle(`hidden`, list.length == 0);
+                            return sym.default;
+                        })
                     },
                     [
                         el`span.todo-count`([
                             el`strong`({
-                                [sym.update]() {
-                                    const uncompleted = this[sym.context].list.reduce(
-                                        (p, c) => p + (c.completed ? 0 : 1),
-                                        0
-                                    );
-                                    this[sym.components] = [text.raw`${uncompleted}`];
-                                }
+                                [sym.update]: watch`list`((self, list) => {
+                                    console.log(list);
+                                    const uncompleted = list.reduce((p, c) => p + (c.completed ? 0 : 1), 0);
+                                    self[sym.components] = [text.raw`${uncompleted | 0} `];
+                                })
                             }),
-                            text.raw`\u00A0items left`
+                            text.raw`items left`
                         ]),
                         el`ul.filters[style="text-transform: capitalize"]`(
                             [`all`, `active`, `completed`].map((name, index) =>
                                 el`li`([
                                     el`a[href="#/${name}"]`(`${name}\u200B`, {
-                                        [sym.update]() {
-                                            this.classList.toggle(`selected`, index == this[sym.context].mode);
-                                        }
+                                        [sym.update]: watch`mode`((self, mode) =>
+                                            self.classList.toggle(`selected`, index === mode)
+                                        )
                                     })
                                 ])
                             )
                         ),
                         el`button.clear-completed`(`Clear completed`, {
-                            [sym.update]() {
-                                const uncompleted = this[sym.context].list.reduce(
-                                    (p, c) => p + (c.completed ? 1 : 0),
-                                    0
-                                );
-                                this.classList.toggle(`hidden`, uncompleted == 0);
-                                return sym.broadcast;
-                            },
+                            [sym.update]: watch`list`((self, list) => {
+                                const uncompleted = list.reduce((p, c) => p + (c.completed ? 1 : 0), 0);
+                                self.classList.toggle(`hidden`, uncompleted == 0);
+                                return sym.default;
+                            }),
                             onclick() {
                                 this[sym.context](patch`list`(list => list.filter(filters[1])));
                             }

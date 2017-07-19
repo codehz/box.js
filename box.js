@@ -21,7 +21,7 @@
             `methods`,
             `changed`,
             `ignore`,
-            `broadcast`
+            `default`
         ].reduce(
             (o, name) =>
                 Object.assign({}, o, {
@@ -106,10 +106,10 @@
             [symbols.text]: $text = null,
             [symbols.value]: $value = null,
             [symbols.datasource]: $datasource = [],
-            [symbols.fetch]: $fetch = () => symbols.ignore,
+            [symbols.fetch]: $fetch = () => symbols.default,
             [symbols.template]: $template = null,
-            [symbols.update]: $update = () => symbols.broadcast,
-            [symbols.render]: $render = $template ? () => symbols.ignore : () => symbols.broadcast,
+            [symbols.update]: $update = () => symbols.default,
+            [symbols.render]: $render = $template ? () => symbols.ignore : () => symbols.default,
             [symbols.autoupdate]: $autoupdate = [],
             [symbols.shadows]: $shadows = [],
             [symbols.key]: $key = NaN,
@@ -295,10 +295,10 @@
         defineConst(el, symbols.update, async obj => {
             if ($template) {
                 const newDataSource = await $fetch.call(el, obj);
-                if (newDataSource !== symbols.ignore) el[symbols.datasource] = newDataSource;
+                if (newDataSource !== symbols.default) el[symbols.datasource] = newDataSource;
             }
             const result = await $update.call(el, obj);
-            if (result === symbols.broadcast)
+            if (result === symbols.default)
                 return [].concat
                     .apply(
                         [],
@@ -313,7 +313,7 @@
         });
         defineConst(el, symbols.render, async obj => {
             const result = await $render.call(el, obj);
-            if (result === symbols.broadcast)
+            if (result === symbols.default)
                 return [].concat
                     .apply(
                         [],
@@ -336,8 +336,12 @@
         return el;
     }
 
+    function genText(slices, ...insert) {
+        return slices.map((x, i) => x + (typeof insert[i] == `undefined` ? `` : insert[i])).join(``);
+    }
+
     function css(slices, ...insert) {
-        const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
+        const target = genText(slices, insert);
         let matched = target.match(/^\n(\s*)/g);
         let cooked;
         if (matched !== null) cooked = target.split(matched[0]).join(`\n`);
@@ -349,7 +353,7 @@
     }
 
     function text(slices, ...insert) {
-        const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
+        const target = genText(slices, insert);
         let matched = target.match(/^\n(\s*)/g);
         let cooked;
         if (matched !== null) cooked = target.split(matched[0]).join(`\n`).trim();
@@ -360,14 +364,14 @@
         };
     }
     text.raw = function(slices, ...insert) {
-        const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
+        const target = genText(slices, insert);
         return {
             [symbols.element]: symbols.text,
             [symbols.value]: target
         };
     };
     function el(slices, ...insert) {
-        const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
+        const target = genText(slices, insert);
         const addition = {
             [symbols.element]: target.match(/^[\w-]*/g)[0]
         };
@@ -395,7 +399,7 @@
     }
 
     function patch(slices, ...insert) {
-        const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
+        const target = genText(slices, insert);
         return value => ({
             path: target.split(`/`),
             value
@@ -403,24 +407,19 @@
     }
 
     function watch(slices, ...insert) {
-        const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
+        const target = genText(slices, insert);
         const paths = target.split(`;`);
         return fn =>
             function(set) {
-                if (paths.reduce((p, c) => p || set.has(c), false)) return fn.call(null, this);
-                return symbols.broadcast;
+                if (paths.reduce((p, c) => p || set.has(c), false))
+                    return fn.call(
+                        null,
+                        this,
+                        ...paths.map(path => path.split(`/`).reduce((p, c) => p[c], this[symbols.context]))
+                    );
+                return symbols.default;
             };
     }
-
-    watch.fetch = function(slices, ...insert) {
-        const target = slices.map((x, i) => x + (insert[i] || ``)).join(``);
-        const paths = target.split(`;`);
-        return fn =>
-            function(set) {
-                if (paths.reduce((p, c) => p || set.has(c), false)) return fn.call(null, this);
-                return symbols.ignore;
-            };
-    };
 
     defineConst(
         global,
