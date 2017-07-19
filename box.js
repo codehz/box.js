@@ -336,7 +336,7 @@
         return el;
     }
 
-    function genText(slices, ...insert) {
+    function genText(slices, insert) {
         return slices.map((x, i) => x + (typeof insert[i] == `undefined` ? `` : insert[i])).join(``);
     }
 
